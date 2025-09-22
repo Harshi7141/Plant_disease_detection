@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plant Disease Detection</title>
+
+    <style>
+        /* ---------- GLOBAL + BACKGROUND ---------- */
+        body{
+            margin:0;
+            font-family:sans-serif;
+            background:url('https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=1950&q=80')
+                       center/cover fixed no-repeat;
+            color:#333;
+        }
+        .overlay{
+            position:fixed;inset:0;
+            background:rgba(34,139,34,.3);
+            z-index:-1;
+        }
+
+        /* ---------- NAVBAR ---------- */
+        .navbar{
+            background:rgba(40,89,67,.9);
+            padding:15px 30px;
+            display:flex;justify-content:space-between;align-items:center;
+            color:#fff;position:fixed;top:0;left:0;right:0;z-index:10;
+        }
+        .navbar h2{margin:0}
+        .navbar a{
+            color:#fff;text-decoration:none;font-weight:bold;margin-left:20px;
+        }
+
+        /* ---------- MAIN CARD ---------- */
+        .container{
+            max-width:800px;
+            margin:120px auto 50px;
+            padding:20px;
+            background:rgba(255,255,255,.85);
+            border-radius:8px;
+            box-shadow:0 4px 8px rgba(0,0,0,.2);
+            text-align:center;
+        }
+        h1{color:#285943;}
+        p{line-height:1.6;}
+
+        .cta-button{
+            display:block;width:200px;margin:20px auto;padding:10px 20px;
+            background:#4CAF50;color:#fff;border:none;border-radius:5px;
+            cursor:pointer;transition:.3s;
+        }
+        .cta-button:hover{background:#3e8e41;}
+
+        #imageInput{display:none;}
+        #imagePreview{
+            max-width:100%;margin-top:20px;display:none;border-radius:5px;
+        }
+
+        /* ---------- AUTH FORMS ---------- */
+        .auth-form{
+            max-width:500px;
+            margin:40px auto;
+            padding:20px;
+            background:rgba(255,255,255,.9);
+            border-radius:8px;
+            box-shadow:0 4px 8px rgba(0,0,0,.15);
+            display:none;      /* hidden until triggered */
+        }
+        .auth-form h2{color:#285943;margin-bottom:15px;}
+        .auth-form input{
+            width:100%;padding:10px;margin-bottom:15px;
+            border:1px solid #ccc;border-radius:5px;
+        }
+        .auth-form button{
+            width:100%;padding:10px;background:#4CAF50;color:#fff;
+            border:none;border-radius:5px;font-weight:bold;cursor:pointer;
+        }
+        .auth-form button:hover{background:#3e8e41;}
+        .auth-toggle-link{
+            display:block;margin-top:10px;color:#285943;text-decoration:none;
+            font-size:14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay"></div>
+
+    <!-- ---------- NAVBAR ---------- -->
+    <nav class="navbar">
+        <h2>🌿 PlantCare</h2>
+        <div>
+            <a href="#">Home</a>
+            <a href="#" id="signup-link">Sign&nbsp;Up</a>
+            <a href="#" id="login-link">Log&nbsp;In</a>
+        </div>
+    </nav>
+
+    <!-- ---------- MAIN CARD ---------- -->
+    <div class="container">
+        <h1>Welcome to Plant Disease Detection</h1>
+        <p>Upload an image of the affected plant and get an accurate diagnosis.</p>
+
+        <label for="imageInput" class="cta-button">Upload Plant Image</label>
+        <input type="file" id="imageInput" accept="image/*">
+
+        <img id="imagePreview" alt="Image Preview">
+
+        <button id="showResult" class="cta-button" style="display:none;">Show Result</button>
+
+        <p id="result-pred"></p>
+        <p id="result-precautions"></p>
+        <p id="result-pesticides"></p>
+    </div>
+
+    <!-- ---------- SIGN-UP FORM ---------- -->
+    <section id="signupForm" class="auth-form">
+        <h2>Create Your Account</h2>
+        <input type="text" placeholder="Full Name" required>
+        <input type="email" placeholder="Email Address" required>
+        <input type="password" placeholder="Password" required>
+        <button type="submit">Sign&nbsp;Up</button>
+        <a href="#" id="to-login" class="auth-toggle-link">Already have an account? Log&nbsp;In</a>
+    </section>
+
+    <!-- ---------- LOGIN FORM ---------- -->
+    <section id="loginForm" class="auth-form">
+        <h2>Log&nbsp;In</h2>
+        <input type="email" placeholder="Email Address" required>
+        <input type="password" placeholder="Password" required>
+        <button type="submit">Log&nbsp;In</button>
+        <a href="#" id="to-signup" class="auth-toggle-link">New here? Create an account</a>
+    </section>
+
+    <script>
+        /* ---------- IMAGE PREVIEW & DISEASE DETECTION ---------- */
+        const imageInput           = document.getElementById('imageInput');
+        const imagePreview         = document.getElementById('imagePreview');
+        const showResultBtn        = document.getElementById('showResult');
+        const resultText           = document.getElementById('result-pred');
+        const resultPrecautionsText= document.getElementById('result-precautions');
+        const resultPesticidesText = document.getElementById('result-pesticides');
+
+        imageInput.addEventListener('change', e=>{
+            const file=e.target.files[0];
+            if(file){
+                const reader=new FileReader();
+                reader.onload=ev=>{
+                    imagePreview.src=ev.target.result;
+                    imagePreview.style.display='block';
+                    showResultBtn.style.display='block';
+                };
+                reader.readAsDataURL(file);
+            }else{
+                imagePreview.style.display='none';
+                showResultBtn.style.display='none';
+            }
+        });
+
+        showResultBtn.addEventListener('click', async ()=>{
+            const file=imageInput.files[0]; if(!file) return;
+            const formData=new FormData(); formData.append('file',file);
+
+            try{
+                const res=await fetch('http://127.0.0.1:8061/process-image/',{method:'POST',body:formData});
+                if(!res.ok) throw new Error(`Server Error: ${res.status}`);
+                const data=await res.json();
+
+                if(data.prediction){
+                    resultText.textContent        ="Prediction: "+data.prediction;
+                    resultPrecautionsText.textContent="Precautions: "+data.precautions;
+                    resultPesticidesText.textContent ="Pesticides: "+data.pesticides;
+                }else{
+                    resultText.textContent="Error: "+(data.error||'Unknown error');
+                }
+            }catch(err){
+                resultText.textContent="Error: Unable to get prediction. Is the Flask server running?";
+                console.error(err);
+            }
+        });
+
+        /* ---------- AUTH FORM TOGGLING ---------- */
+        const signupForm = document.getElementById('signupForm');
+        const loginForm  = document.getElementById('loginForm');
+
+        const showForm = type=>{
+            if(type==='signup'){
+                signupForm.style.display='block';
+                loginForm.style.display='none';
+                signupForm.scrollIntoView({behavior:'smooth'});
+            }else{
+                loginForm.style.display='block';
+                signupForm.style.display='none';
+                loginForm.scrollIntoView({behavior:'smooth'});
+            }
+        };
+
+        document.getElementById('signup-link').addEventListener('click',e=>{
+            e.preventDefault(); showForm('signup');
+        });
+        document.getElementById('login-link').addEventListener('click',e=>{
+            e.preventDefault(); showForm('login');
+        });
+        document.getElementById('to-login').addEventListener('click',e=>{
+            e.preventDefault(); showForm('login');
+        });
+        document.getElementById('to-signup').addEventListener('click',e=>{
+            e.preventDefault(); showForm('signup');
+        });
+    </script>
+</body>
+</html>
