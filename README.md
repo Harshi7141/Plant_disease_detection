@@ -32,8 +32,8 @@ This project uses **Deep Learning** to detect and classify diseases in plants fr
 ```
 ├── main.py # FastAPI application to run the project
 ├── model/ # Directory to store the trained model
-│ └── plant_disease_model.h5 # The pre-trained model file
-├── images/ # Folder for sample images
+│ └── plant_disease_model.h5 # Will generate after model file is trained
+├── PlantVillage/ # Folder for sample images
 ├── requirements.txt # List of all necessary Python packages
 └── README.md # Project documentation and instructions
 ```
